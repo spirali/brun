@@ -1,0 +1,116 @@
+
+= BRUN User Guide
+:source-highlighter: coderay
+
+BRUN is a simple benchmarking toolkit
+
+== Demonstration 
+
+.File `test.py`
+[source,python]
+----
+from brun import main, add, add_set
+
+add("ls /usr",                   # Command
+    { "name": "ls" })            # User-defined keys
+
+add("ls /nonsense", 
+    { "name": "ls" })
+
+# Make more test at once
+add_set("sleep {wait}",          # Command
+        { "name": "sleep" },     # Keys that are same for all
+        { "wait" : [ 0, 1, 3 ]}) # Keys to interpolate
+
+if __name__ == "__main__":
+   main()
+----
+
+=== Dry run
+
+	$ python test.py --list
+	-------------------------------
+	| command      | name  | wait |
+	-------------------------------
+	| ls /usr      | ls    |      |
+	| ls /nonsense | ls    |      |
+	| sleep 0      | sleep | 0    |
+	| sleep 1      | sleep | 1    |
+	| sleep 3      | sleep | 3    |
+	-------------------------------
+
+=== Real run
+
+	$ python test.py
+	================ [1/5] =================
+	Command: ls /usr
+	bin  games  include  lib  local  sbin  share  src
+	Time:    0.00088906288147
+	================ [2/5] =================
+	Command: ls /nonsense
+	ls: cannot access /nonsense: No such file or directory
+	Status:  failed
+	================ [3/5] =================
+	Command: sleep 0
+	Time:    0.000415086746216
+	================ [4/5] =================
+	Command: sleep 1
+	Time:    1.00055217743
+	================ [5/5] =================
+	Command: sleep 3
+	Time:    3.0006248951
+
+	------------------------------------------------------------
+	| command      | name  | status | time              | wait |
+	------------------------------------------------------------
+	| ls /usr      | ls    | ok     | 0.00088906288147  |      |
+	| ls /nonsense | ls    | failed |                   |      |
+	| sleep 0      | sleep | ok     | 0.000415086746216 | 0    |
+	| sleep 1      | sleep | ok     | 1.00055217743     | 1    |
+	| sleep 3      | sleep | ok     | 3.0006248951      | 3    |
+	------------------------------------------------------------
+
+
+=== Other options
+
+* `--timeout=SECONDS` -- Timeout of tests
+* `-fKEY=VALUE` -- Run only tests that exactly matches filter, e.g. `-fname=sleep`
+* `-fKEY~VALUE` -- Run only tests where VALUE is in the column KEY, e.g. `-fcommand~ls`
+* `-c KEY1 KEY2 ...` -- Show only selected columns of the table
+* `--transpose` -- Transpose the table
+* `--tab2 KEY1 KEY2 KEY3` -- Rearrange the table where values of KEY1 make X axis, values of KEY2 make Y axis and the content for resulting table is taken from KEY3, e.g. lets have benchmarks with keys "name" and "processes" then try `--tab2 name processes time`
+
+=== Postprocessing
+
+.File `test2.py`
+[source,python]
+----
+from brun import main, add_set
+
+def postprocess(info):
+    with open("/tmp/brun") as f:
+        info["lines"] = len(f.readlines())
+
+add_set("ls {path} > /tmp/brun",
+        {},
+        {"path": [ "/usr", "/home" ]},
+        shell=True)
+
+if __name__ == "__main__":
+   main(post_fn=postprocess)
+----
+
+	$ python test2.py
+	================ [1/2] =================
+	Command: ls /usr > /tmp/brun
+	Time:    0.00173115730286
+	================ [2/2] =================
+	Command: ls /home > /tmp/brun
+	Time:    0.00226807594299
+
+	--------------------------------------------------------------------
+	| command              | lines | path  | status | time             |
+	--------------------------------------------------------------------
+	| ls /usr > /tmp/brun  | 8     | /usr  | ok     | 0.00173115730286 |
+	| ls /home > /tmp/brun | 5     | /home | ok     | 0.00226807594299 |
+	--------------------------------------------------------------------

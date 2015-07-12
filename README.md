@@ -1,0 +1,2 @@
+# brun
+Simple benchmarking toolkit

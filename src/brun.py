@@ -82,10 +82,14 @@ class Benchmark(object):
 
 class Context:
 
-    def __init__(self, benchmarks, timeout):
-        self.benchmarks = benchmarks
+    def __init__(self, benchmarks, timeout, repeat):
+        self.benchmarks = []
+        for benchmark in benchmarks:
+            for i in xrange(repeat):
+                self.benchmarks.append(benchmark)
         self.skip_list = set()
         self.timeout = timeout
+        self.repeat = repeat
 
     def skip(self, predicate):
         for benchmark in self.benchmarks:
@@ -152,7 +156,7 @@ def _parse_args():
 
     parser.add_argument("--transpose",
                         action="store_true",
-                        help="Print all benchmarks")
+                        help="Transpose table")
 
     parser.add_argument("--tab2",
                         nargs=3,
@@ -163,6 +167,11 @@ def _parse_args():
     parser.add_argument("--timeout",
                         type=float,
                         help="Timeout of tests [s]")
+
+    parser.add_argument("--repeat",
+                        type=int,
+                        default=1,
+                        help="Repeat each benchmark (default: 1)")
 
 
     return parser.parse_args()
@@ -266,7 +275,7 @@ def main(timeout=None, post_fn=None):
     if args.list:
         results = [b.info for b in benchmarks]
     else:
-        results = Context(benchmarks, args.timeout).run()
+        results = Context(benchmarks, args.timeout, args.repeat).run()
 
     if args.tab2:
         table = make_table2(

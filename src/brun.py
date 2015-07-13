@@ -64,11 +64,10 @@ class Benchmark(object):
         if not isinstance(status, str):
             result["status"] = "ok"
             result["time"] = status
+            for fn in self.post_fns:
+                fn(result)
         else:
             result["status"] = status
-
-        for fn in self.post_fns:
-            fn(result)
 
         return result
 

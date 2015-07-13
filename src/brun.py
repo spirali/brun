@@ -123,6 +123,10 @@ def _parse_args():
                         nargs="*",
                         help="Select columns")
 
+    parser.add_argument("-H",
+                        nargs="*",
+                        help="Hide columns")
+
     parser.add_argument("--list",
                         action="store_true",
                         help="Print all benchmarks")
@@ -169,10 +173,14 @@ def _filter(args, benchmarks):
         results.append(benchmark)
     return results
 
-def make_table(items, columns):
+def make_table(items, args):
     table = Table()
-    if columns is None:
+    if args.c is None:
         columns = _get_names(items)
+        if args.H:
+            columns = [ name for name in columns if name not in args.H ]
+    else:
+        columns = args.c
     table.add_dictionaries(items, columns)
     return table
 
@@ -245,7 +253,7 @@ def main(timeout=None, post_fn=None):
         table = make_table2(
             results, args.tab2[0], args.tab2[1], args.tab2[2])
     else:
-        table = make_table(results, args.c)
+        table = make_table(results, args)
     if args.transpose:
         table = table.transpose()
     print

@@ -77,6 +77,7 @@ if __name__ == "__main__":
 * `-fKEY=VALUE` -- Run only tests that exactly matches filter, e.g. `-fname=sleep`
 * `-fKEY~VALUE` -- Run only tests where VALUE is in the column KEY, e.g. `-fcommand~ls`
 * `-c KEY1 KEY2 ...` -- Show only selected columns of the table
+* `-H KEY1 KEY2 ...` -- Hide selected columns of the table
 * `--transpose` -- Transpose the table
 * `--tab2 KEY1 KEY2 KEY3` -- Rearrange the table where values of KEY1 make X axis, values of KEY2 make Y axis and the content for resulting table is taken from KEY3, e.g. lets have benchmarks with keys "name" and "processes" then try `--tab2 name processes time`
 

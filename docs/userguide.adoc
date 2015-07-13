@@ -81,16 +81,20 @@ if __name__ == "__main__":
 * `--transpose` -- Transpose the table
 * `--tab2 KEY1 KEY2 KEY3` -- Rearrange the table where values of KEY1 make X axis, values of KEY2 make Y axis and the content for resulting table is taken from KEY3, e.g. lets have benchmarks with keys "name" and "processes" then try `--tab2 name processes time`
 
-=== Postprocessing
+== Postprocessing
+
+=== Extract additional information
 
 .File `test2.py`
 [source,python]
 ----
 from brun import main, add_set
 
-def postprocess(info):
+def postprocess(context, result):
+    if result["status"] != "ok":
+        return
     with open("/tmp/brun") as f:
-        info["lines"] = len(f.readlines())
+        result["lines"] = len(f.readlines())
 
 add_set("ls {path} > /tmp/brun",
         {},
@@ -115,3 +119,38 @@ if __name__ == "__main__":
 	| ls /usr > /tmp/brun  | 8     | /usr  | ok     | 0.00173115730286 |
 	| ls /home > /tmp/brun | 5     | /home | ok     | 0.00226807594299 |
 	--------------------------------------------------------------------
+
+=== Skipping tests if something timeouted
+
+.File `test3.py`
+[source,python]
+----
+from brun import add_set, main
+
+def post_fn(context, result):
+    if result["status"] == "timeout": # Skip wait with longer times
+        context.skip(lambda benchmark: benchmark.get("wait") > result["wait"])
+
+add_set("sleep {wait}", {}, { "wait" : [1,2,3] })
+
+main(post_fn=post_fn)
+----
+
+    python test3.py  --timeout=1.5
+    ================ [1/3] =================
+    Command: sleep 1
+    Time:    1.01673698425
+    ================ [2/3] =================
+    Command: sleep 2
+    Status:  timeout
+    ================ [3/3] =================
+    Command: sleep 3
+    Status:  skipped
+
+    --------------------------------------------
+    | command | status  | time          | wait |
+    --------------------------------------------
+    | sleep 1 | ok      | 1.01673698425 | 1    |
+    | sleep 2 | timeout |               | 2    |
+    | sleep 3 | skipped |               | 3    |
+    --------------------------------------------

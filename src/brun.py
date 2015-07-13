@@ -58,21 +58,54 @@ class Benchmark(object):
                 return "failed"
             return tm
 
-    def run(self, timeout):
-        status = self.execute(None, timeout)
+    def run(self, context):
         result = self.info.copy()
+        if self in context.skip_list:
+            result["status"] = "skipped"
+            return result
+        status = self.execute(None, context.timeout)
         if not isinstance(status, str):
             result["status"] = "ok"
             result["time"] = status
-            for fn in self.post_fns:
-                fn(result)
         else:
             result["status"] = status
-
+        for fn in self.post_fns:
+            fn(context, result)
         return result
+
+    def get(self, key):
+        return self.info.get(key)
 
     def __repr__(self):
         return "<Benchmark command='{0}'>".format(self.command)
+
+
+class Context:
+
+    def __init__(self, benchmarks, timeout):
+        self.benchmarks = benchmarks
+        self.skip_list = set()
+        self.timeout = timeout
+
+    def skip(self, predicate):
+        for benchmark in self.benchmarks:
+            if predicate(benchmark):
+                self.skip_list.add(benchmark)
+
+    def run(self):
+        results = []
+        for i, benchmark in enumerate(self.benchmarks):
+            print "================ [{0}/{1}] =================" \
+                    .format(i + 1, len(self.benchmarks))
+            print "Command:", benchmark.info["command"]
+            result = benchmark.run(self)
+            results.append(result)
+            if result["status"] == "ok":
+                print "Time:   ", result["time"]
+            else:
+                print "Status: ", result["status"]
+        return results
+
 
 _all_benchmarks = []
 
@@ -95,19 +128,6 @@ def make_set(command_pattern, fixed_info, info, *args, **kw):
 def add_set(command_pattern, fixed_info, info, *args, **kw):
     _all_benchmarks.extend(list(make_set(
         command_pattern, fixed_info, info, *args, **kw)))
-
-def _run(args, benchmarks):
-    results = []
-    for i, benchmark in enumerate(benchmarks):
-        print "================ [{0}/{1}] =================".format(i + 1, len(benchmarks))
-        print "Command:", benchmark.info["command"]
-        result = benchmark.run(args.timeout)
-        results.append(result)
-        if result["status"] == "ok":
-            print "Time:   ", result["time"]
-        else:
-            print "Status: ", result["status"]
-    return results
 
 def _parse_args():
     parser = argparse.ArgumentParser(description=
@@ -246,7 +266,7 @@ def main(timeout=None, post_fn=None):
     if args.list:
         results = [b.info for b in benchmarks]
     else:
-        results = _run(args, benchmarks)
+        results = Context(benchmarks, args.timeout).run()
 
     if args.tab2:
         table = make_table2(

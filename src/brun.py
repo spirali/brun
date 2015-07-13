@@ -258,3 +258,10 @@ def main(timeout=None, post_fn=None):
         table = table.transpose()
     print
     print table.to_ascii_table(),
+
+    with open("results.py", "w") as f:
+        f.write("results = [\n")
+        for result in results:
+            f.write("    " + repr(result) + ",\n")
+        f.write("]\n")
+    print "Full results written into 'results.py'"

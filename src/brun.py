@@ -139,7 +139,7 @@ def _parse_args():
 
     parser.add_argument("-f",
                         metavar="FILTER",
-                        type=str,
+                        action="append",
                         help="Filter benchmarks")
 
     parser.add_argument("-c",
@@ -186,19 +186,22 @@ def _parse_filter(s):
 def _filter(args, benchmarks):
     if args.f is None:
         return benchmarks
-    op, key, value = _parse_filter(args.f)
     results = []
+    filters = list(map(_parse_filter, args.f))
     for benchmark in benchmarks:
-        v = benchmark.info.get(key)
-        if v is None:
-            continue
-        if op == "=":
-            if v != value:
-                continue
-        if op == "~":
-            if value not in v:
-                continue
-        results.append(benchmark)
+        for op, key, value in filters:
+            v = benchmark.info.get(key)
+            if v is None:
+                break
+            v = str(v)
+            if op == "=":
+                if v != value:
+                    break
+            if op == "~":
+                if value not in v:
+                    break
+        else:
+            results.append(benchmark)
     return results
 
 def make_table(items, args):

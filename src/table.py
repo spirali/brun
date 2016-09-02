@@ -4,11 +4,11 @@ class Table(object):
     def __init__(self):
         self.rows = []
 
-
     def to_ascii_table(self):
         if not self.rows:
             return ""
         lines = []
+
         def print_row(row):
             line = ""
             for column, l in zip(row, lens):
@@ -44,7 +44,7 @@ class Table(object):
 
         table = Table()
         for i in xrange(len(self.rows[0])):
-            table.add_row([ r[i] for r in self.rows ])
+            table.add_row([r[i] for r in self.rows])
         return table
 
     def add_row(self, data):
@@ -56,5 +56,5 @@ class Table(object):
     def add_dictionaries(self, items, columns):
         self.add_row(columns)
         for item in items:
-            row = [ item.get(column) for column in columns ]
+            row = [item.get(column) for column in columns]
             self.add_row(row)

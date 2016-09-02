@@ -6,6 +6,7 @@ import itertools
 
 from table import Table
 
+
 class Benchmark(object):
 
     def __init__(self, command, info=None, post_fn=None, shell=False):
@@ -29,7 +30,7 @@ class Benchmark(object):
         elif hasattr(post_fn, '__iter__'):
             self.post_fns = list(post_fn)
         else:
-            self.post_fns = [ post_fn ]
+            self.post_fns = [post_fn]
 
         self.shell = shell
 
@@ -41,8 +42,10 @@ class Benchmark(object):
                              cwd=cwd,
                              stdout=None,
                              shell=self.shell)
+
         def target():
             p.wait()
+
         thread = threading.Thread(target=target)
         tm = time.time()
         thread.start()
@@ -99,8 +102,8 @@ class Context:
     def run(self):
         results = []
         for i, benchmark in enumerate(self.benchmarks):
-            print "================ [{0}/{1}] =================" \
-                    .format(i + 1, len(self.benchmarks))
+            print ("================ [{0}/{1}] ================="
+                   .format(i + 1, len(self.benchmarks)))
             print "Command:", benchmark.info["command"]
             result = benchmark.run(self)
             results.append(result)
@@ -113,14 +116,17 @@ class Context:
 
 _all_benchmarks = []
 
+
 def add(*args, **kw):
     _all_benchmarks.append(Benchmark(*args, **kw))
 
+
 def make_product(dictionary):
     keys = dictionary.keys()
-    values = [ dictionary[k] for k in keys ]
+    values = [dictionary[k] for k in keys]
     for v in itertools.product(*values):
         yield dict(zip(keys, v))
+
 
 def make_set(command_pattern, fixed_info, info, *args, **kw):
     for d in make_product(info):
@@ -129,14 +135,14 @@ def make_set(command_pattern, fixed_info, info, *args, **kw):
         yield Benchmark(
                 command_pattern.format(**new_info), new_info, *args, **kw)
 
+
 def add_set(command_pattern, fixed_info, info, *args, **kw):
     _all_benchmarks.extend(list(make_set(
         command_pattern, fixed_info, info, *args, **kw)))
 
-def _parse_args():
-    parser = argparse.ArgumentParser(description=
-            "brun -- Benchmark runner")
 
+def _parse_args():
+    parser = argparse.ArgumentParser(description="brun -- Benchmark runner")
     parser.add_argument("-f",
                         metavar="FILTER",
                         action="append",
@@ -163,7 +169,6 @@ def _parse_args():
                         type=str,
                         help="Print all benchmarks")
 
-
     parser.add_argument("--timeout",
                         type=float,
                         help="Timeout of tests [s]")
@@ -173,8 +178,8 @@ def _parse_args():
                         default=1,
                         help="Repeat each benchmark (default: 1)")
 
-
     return parser.parse_args()
+
 
 def _parse_filter(s):
     if "=" in s:
@@ -182,6 +187,7 @@ def _parse_filter(s):
     if "~" in s:
         return ["~"] + s.split("~")
     return "*", s, ""
+
 
 def _filter(args, benchmarks):
     if args.f is None:
@@ -204,21 +210,24 @@ def _filter(args, benchmarks):
             results.append(benchmark)
     return results
 
+
 def make_table(items, args):
     table = Table()
     if args.c is None:
         columns = _get_names(items)
         if args.H:
-            columns = [ name for name in columns if name not in args.H ]
+            columns = [name for name in columns if name not in args.H]
     else:
         columns = args.c
     table.add_dictionaries(items, columns)
     return table
 
+
 def _get_names(items):
     lst = list(set().union(*(item.keys() for item in items)))
     lst.sort()
     return lst
+
 
 def _get_values(items, key):
     lst = list(set(filter(lambda x: x is not None,
@@ -226,12 +235,13 @@ def _get_values(items, key):
     lst.sort()
     return lst
 
+
 def tabularize(items, column1, column2, data_column, merge_fn):
     x_values = _get_values(items, column2)
     y_values = _get_values(items, column1)
-    results = [ [ column1 ] + x_values ]
+    results = [[column1] + x_values]
     for y_name in y_values:
-        row = [ y_name ]
+        row = [y_name]
         for x_name in x_values:
             values = None
             for item in items:
@@ -245,6 +255,7 @@ def tabularize(items, column1, column2, data_column, merge_fn):
         results.append(row)
     return results
 
+
 def make_table2(items, column1, column2, data_column):
     def merge_fn(values, value):
         if values is None:
@@ -252,12 +263,13 @@ def make_table2(items, column1, column2, data_column):
         elif isinstance(values, list):
             return values.append(value)
         else:
-            return [ values, value ]
+            return [values, value]
 
     rows = tabularize(items, column1, column2, data_column, merge_fn)
     table = Table()
     table.add_rows(rows)
     return table
+
 
 def main(timeout=None, post_fn=None):
     args = _parse_args()

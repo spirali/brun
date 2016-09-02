@@ -154,3 +154,13 @@ main(post_fn=post_fn)
     | sleep 2 | timeout |               | 2    |
     | sleep 3 | skipped |               | 3    |
     --------------------------------------------
+
+=== Order of columns
+
+By default, columns are ordered alphabetically. You can change it by command line argument `-c`
+or by argument of `main`.
+
+[source,python]
+----
+main(columns=["time", "name", "mycolumn"])
+----

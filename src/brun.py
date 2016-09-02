@@ -211,14 +211,14 @@ def _filter(args, benchmarks):
     return results
 
 
-def make_table(items, args):
+def make_table(items, args, columns):
     table = Table()
-    if args.c is None:
-        columns = _get_names(items)
-        if args.H:
-            columns = [name for name in columns if name not in args.H]
-    else:
+    if args.c is not None:
         columns = args.c
+    elif columns is None:
+        columns = _get_names(items)
+    if args.H:
+        columns = [name for name in columns if name not in args.H]
     table.add_dictionaries(items, columns)
     return table
 
@@ -271,7 +271,7 @@ def make_table2(items, column1, column2, data_column):
     return table
 
 
-def main(timeout=None, post_fn=None):
+def main(timeout=None, columns=None, post_fn=None):
     args = _parse_args()
 
     if args.timeout is None:
@@ -296,7 +296,7 @@ def main(timeout=None, post_fn=None):
         table = make_table2(
             results, args.tab2[0], args.tab2[1], args.tab2[2])
     else:
-        table = make_table(results, args)
+        table = make_table(results, args, columns)
     if args.transpose:
         table = table.transpose()
     print

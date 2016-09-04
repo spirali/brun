@@ -91,16 +91,14 @@ if __name__ == "__main__":
 ----
 from brun import main, add_set
 
-def postprocess(context, result):
+def postprocess(context, result, stdout):
     if result["status"] != "ok":
         return
-    with open("/tmp/brun") as f:
-        result["lines"] = len(f.readlines())
+    result["lines"] = stdout.count("\n")
 
-add_set("ls {path} > /tmp/brun",
+add_set("ls {path}",
         {},
-        {"path": [ "/usr", "/home" ]},
-        shell=True)
+        {"path": [ "/usr", "/home" ]})
 
 if __name__ == "__main__":
    main(post_fn=postprocess)
@@ -108,18 +106,18 @@ if __name__ == "__main__":
 
 	$ python test2.py
 	================ [1/2] =================
-	Command: ls /usr > /tmp/brun
-	Time:    0.00173115730286
+	Command: ls /usr
+	[1] Time:   0.00155401229858
 	================ [2/2] =================
-	Command: ls /home > /tmp/brun
-	Time:    0.00226807594299
+	Command: ls /home
+	[2] Time:   0.001384973526
 
-	--------------------------------------------------------------------
-	| command              | lines | path  | status | time             |
-	--------------------------------------------------------------------
-	| ls /usr > /tmp/brun  | 8     | /usr  | ok     | 0.00173115730286 |
-	| ls /home > /tmp/brun | 5     | /home | ok     | 0.00226807594299 |
-	--------------------------------------------------------------------
+	--------------------------------------------------------
+	| command  | lines | path  | status | time             |
+	--------------------------------------------------------
+	| ls /usr  | 9     | /usr  | ok     | 0.00155401229858 |
+	| ls /home | 6     | /home | ok     | 0.001384973526   |
+	--------------------------------------------------------
 
 === Skipping tests if something timeouted
 

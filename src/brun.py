@@ -43,11 +43,12 @@ class Benchmark(object):
     def execute(self, cwd=None, timeout=None):
         p = subprocess.Popen(self.command,
                              cwd=cwd,
-                             stdout=None,
+                             stdout=subprocess.PIPE,
                              shell=self.shell)
 
+        out = [None]
         def target():
-            p.wait()
+            out[0], err = p.communicate()
 
         thread = threading.Thread(target=target)
         tm = time.time()
@@ -62,7 +63,7 @@ class Benchmark(object):
         else:
             if p.returncode != 0:
                 return "failed"
-            return tm
+            return (tm, out[0])
 
     def run(self, context, skip):
         result = self.info.copy()
@@ -70,13 +71,15 @@ class Benchmark(object):
             result["status"] = "skipped"
             return result
         status = self.execute(None, context.timeout)
+        stdout = None
         if not isinstance(status, str):
             result["status"] = "ok"
-            result["time"] = status
+            time, stdout = status
+            result["time"] = time
         else:
             result["status"] = status
         for fn in self.post_fns:
-            fn(context, result)
+            fn(context, result, stdout)
         return result
 
     def get(self, key):
@@ -121,17 +124,15 @@ class Context:
         return result
 
     def run(self):
-        print self.processes
         count = len(self.benchmarks)
         assert self.processes >= 1
         if self.processes == 1:
-            results = []
-            for i, benchmark in enumerate(self.benchmarks):
-                self.run_benchmark(i, benchmark, count)
+            results = [self.run_benchmark(i, benchmark, count)
+                       for i, benchmark in enumerate(self.benchmarks)]
         else:
-            results = ThreadPoolExecutor(max_workers=self.processes).map(
+            results = list(ThreadPoolExecutor(max_workers=self.processes).map(
                 lambda v: self.run_benchmark(v[0], v[1], count),
-                enumerate(self.benchmarks))
+                enumerate(self.benchmarks)))
         return results
 
 

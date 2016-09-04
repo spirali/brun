@@ -73,6 +73,7 @@ if __name__ == "__main__":
 
 === Other options
 
+* `-p=PROCESSES` -- Number of simultenously executed benchmarks (default: 1)
 * `--timeout=SECONDS` -- Timeout of tests
 * `-fKEY=VALUE` -- Run only tests that exactly matches filter, e.g. `-fname=sleep`
 * `-fKEY~VALUE` -- Run only tests where VALUE is in the column KEY, e.g. `-fcommand~ls`

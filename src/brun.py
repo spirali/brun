@@ -3,8 +3,11 @@ import subprocess
 import time
 import threading
 import itertools
+from concurrent.futures import ThreadPoolExecutor
+
 
 from table import Table
+
 
 
 class Benchmark(object):
@@ -61,9 +64,9 @@ class Benchmark(object):
                 return "failed"
             return tm
 
-    def run(self, context):
+    def run(self, context, skip):
         result = self.info.copy()
-        if self in context.skip_list:
+        if skip:
             result["status"] = "skipped"
             return result
         status = self.execute(None, context.timeout)
@@ -85,7 +88,7 @@ class Benchmark(object):
 
 class Context:
 
-    def __init__(self, benchmarks, timeout, repeat):
+    def __init__(self, benchmarks, processes, timeout, repeat):
         self.benchmarks = []
         for benchmark in benchmarks:
             for i in xrange(repeat):
@@ -93,24 +96,42 @@ class Context:
         self.skip_list = set()
         self.timeout = timeout
         self.repeat = repeat
+        self.processes = processes
+        self.lock = threading.Lock()
 
     def skip(self, predicate):
-        for benchmark in self.benchmarks:
-            if predicate(benchmark):
-                self.skip_list.add(benchmark)
+        with self.lock:
+            for benchmark in self.benchmarks:
+                if predicate(benchmark):
+                    self.skip_list.add(benchmark)
+
+    def run_benchmark(self, i, benchmark, count):
+        i += 1
+        with self.lock:
+            print ("================ [{0}/{1}] ================="
+                   .format(i, count))
+            print "Command:", benchmark.info["command"]
+            skip = self in self.skip_list
+        result = benchmark.run(self, skip)
+        with self.lock:
+            if result["status"] == "ok":
+                print "[{}] Time:   {}".format(i, result["time"])
+            else:
+                print "[{}] Status: {}".format(i, result["status"])
+        return result
 
     def run(self):
-        results = []
-        for i, benchmark in enumerate(self.benchmarks):
-            print ("================ [{0}/{1}] ================="
-                   .format(i + 1, len(self.benchmarks)))
-            print "Command:", benchmark.info["command"]
-            result = benchmark.run(self)
-            results.append(result)
-            if result["status"] == "ok":
-                print "Time:   ", result["time"]
-            else:
-                print "Status: ", result["status"]
+        print self.processes
+        count = len(self.benchmarks)
+        assert self.processes >= 1
+        if self.processes == 1:
+            results = []
+            for i, benchmark in enumerate(self.benchmarks):
+                self.run_benchmark(i, benchmark, count)
+        else:
+            results = ThreadPoolExecutor(max_workers=self.processes).map(
+                lambda v: self.run_benchmark(v[0], v[1], count),
+                enumerate(self.benchmarks))
         return results
 
 
@@ -144,6 +165,13 @@ def add_set(command_pattern, fixed_info, info, *args, **kw):
 
 def _parse_args():
     parser = argparse.ArgumentParser(description="brun -- Benchmark runner")
+
+    parser.add_argument("-p",
+                        metavar="INT",
+                        type=int,
+                        default=1,
+                        help="# of simultenously running benchmarks (default: 1)")
+
     parser.add_argument("-f",
                         metavar="FILTER",
                         action="append",
@@ -291,7 +319,10 @@ def main(timeout=None, columns=None, post_fn=None):
     if args.list:
         results = [b.info for b in benchmarks]
     else:
-        results = Context(benchmarks, args.timeout, args.repeat).run()
+        results = Context(benchmarks,
+                          args.p,
+                          args.timeout,
+                          args.repeat).run()
 
     if args.tab2:
         table = make_table2(

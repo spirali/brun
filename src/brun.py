@@ -123,6 +123,7 @@ def add(*args, **kw):
 
 def make_product(dictionary):
     keys = dictionary.keys()
+    keys.sort()
     values = [dictionary[k] for k in keys]
     for v in itertools.product(*values):
         yield dict(zip(keys, v))

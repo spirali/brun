@@ -138,8 +138,8 @@ def make_set(command_pattern, fixed_info, info, *args, **kw):
 
 
 def add_set(command_pattern, fixed_info, info, *args, **kw):
-    _all_benchmarks.extend(list(make_set(
-        command_pattern, fixed_info, info, *args, **kw)))
+    _all_benchmarks.extend(make_set(
+        command_pattern, fixed_info, info, *args, **kw))
 
 
 def _parse_args():
